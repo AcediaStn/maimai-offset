@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive">
 <meta name="referrer" content="no-referrer">
-<title>maimai DX 判定偏移調整器 v0.6</title>
+<title>maimai DX 判定偏移調整器 v0.9</title>
 <style>
   :root{
     --bg:#0f0f16; --card:#191922; --card2:#20202b; --line:#2e2e3d;
@@ -122,7 +122,7 @@
 </head>
 <body>
 
-<h1>maimai DX <span class="accent">判定偏移調整器</span> <span class="ver">v0.6</span></h1>
+<h1>maimai DX <span class="accent">判定偏移調整器</span> <span class="ver">v0.9</span></h1>
 <div class="tagline">輸入最近幾場嘅 FAST / LATE，計出你應該點調「判定タイミング A / B」</div>
 
 <h2>① 現況同設定</h2>
@@ -170,16 +170,21 @@
   <div class="fld"><label>要幾多場</label>
     <input id="tomomaiN" type="number" min="1" max="50" step="1" value="10" inputmode="numeric"></div>
   <button class="btn" id="tomomaiGo" type="button">讀取最近嘅場次</button>
+  <div class="fld" style="margin-top:10px"><label>代理網址 <small>（可選；填咗就唔會再出 Failed to fetch）</small></label>
+    <input id="tomomaiProxy" type="text" placeholder="https://你的-worker.workers.dev" autocomplete="off" spellcheck="false"></div>
+  <div class="hint">瀏覽器預設唔准網頁直接讀 tomomai（冇 CORS 標頭）。填一個你自己嘅細代理就會即刻通 ——
+  設定方法見 <code>代理設定.md</code>。唔填都可以，用下面「複製 JSON」嘅方法。</div>
   <button class="btn ghost" id="tomomaiPick" type="button">或者：揀一個 JSON 檔</button>
   <button class="btn" id="tomomaiUseJson" type="button" style="display:none"></button>
   <input id="tomomaiFile" type="file" accept=".json,application/json,text/plain" style="display:none">
   <div id="tomomaiMsg" class="hint" style="margin-top:8px; min-height:20px"></div>
   <details style="margin-top:8px">
-    <summary>讀唔到？手動方法（貼 JSON ／ 睇 API 網址）</summary>
+    <summary>手機／電腦都得：開 API 網址 → 複製 → 貼上</summary>
     <div>
       <p><b>「讀取」失敗係正常嘅。</b>瀏覽器唔准一個網頁直接讀另一個網站嘅資料（CORS 限制），
-      所以嗰粒掣有機會出 <code>Failed to fetch</code>。咁就只好手動，兩個方法揀一個：</p>
-      <p><b>方法一：</b>喺電腦開下面條網址，Ctrl+A 全選、複製，貼落最底個格再撳「解析」。</p>
+      所以嗰粒掣一定有機會出 <code>Failed to fetch</code>。咁就只好手動，兩個方法揀一個：</p>
+      <p><b>方法一（手機都用得）：</b>喺 <b>新 tab</b> 開下面條網址（開網址唔受 CORS 限制），
+      全選、複製，返嚟撳「由剪貼板貼上」。</p>
       <div id="tomomaiRaw" class="hint" style="word-break:break-all; color:var(--cyan); margin-bottom:8px"></div>
       <p><b>方法二：</b>自己整一個簡化版 JSON（每場一行）：</p>
       <pre style="font-size:11px; overflow-x:auto; background:var(--card2); padding:8px; border-radius:8px; margin:0 0 8px">{"plays":[
@@ -188,7 +193,10 @@
       <p><code>cp</code> = 總 Critical Perfect、<code>p</code> = 總 Perfect、
       <code>sl</code> = 滑鍵總數、<code>tc</code> = 觸控總數、<code>f</code>/<code>l</code> = FAST/LATE。</p>
       <textarea id="tomomaiJson" placeholder="或者直接貼 JSON 喺呢度…" spellcheck="false"></textarea>
-      <button class="btn" id="tomomaiParse" type="button">解析貼落嚟嘅 JSON</button>
+      <div style="display:flex; gap:8px; flex-wrap:wrap">
+        <button class="btn" id="tomomaiPaste" type="button">由剪貼板貼上</button>
+        <button class="btn" id="tomomaiParse" type="button">解析貼落嚟嘅 JSON</button>
+      </div>
     </div>
   </details>
 
@@ -445,6 +453,7 @@
     shown: 16.6667,
     sigma: 16.7,
     a: 0, b: 0,
+    proxy: '',
     plays: []
   };
 
@@ -769,7 +778,7 @@
     try{
       localStorage.setItem(KEY, JSON.stringify({
         mode: state.mode, target: state.target, shown: state.shown,
-        sigma: state.sigma, a: state.a, b: state.b, plays: state.plays
+        sigma: state.sigma, a: state.a, b: state.b, proxy: state.proxy, plays: state.plays
       }));
     }catch(e){}
   }
@@ -784,6 +793,7 @@
       if (d.sigma) state.sigma = d.sigma;
       state.a = d.a || 0;
       state.b = d.b || 0;
+      if (d.proxy) state.proxy = d.proxy;
       if (d.plays && d.plays.length){
         state.plays = d.plays.map(function(p){
           var q = blankPlay();
@@ -798,6 +808,8 @@
   function syncControls(){
     document.getElementById('offsetA').value = state.a;
     document.getElementById('offsetB').value = state.b;
+    var px = document.getElementById('tomomaiProxy');
+    if (px) px.value = state.proxy || '';
     var t = document.querySelector('input[name="target"][value="' + state.target + '"]');
     if (t) t.checked = true;
     var sh = document.querySelector('input[name="shown"][value="' + state.shown + '"]');
@@ -826,9 +838,19 @@
     }
   }
 
+  // 如果你有一個自己嘅代理（Cloudflare Worker 等），所有請求都會經佢行。
+  // 用法：輸入 https://xxx.workers.dev ，工具就會打 https://xxx.workers.dev?u=<原網址>
+  function proxyWrap(u){
+    var p = (state.proxy || '').trim();
+    if (!p) return u;
+    if (p.indexOf('http') !== 0) p = 'https://' + p;
+    if (p.indexOf('?') >= 0) return p + encodeURIComponent(u);
+    return p.replace(/\/+$/, '') + '?u=' + encodeURIComponent(u);
+  }
+
   function trpc(proc, payload){
     var url = TOMO + proc + '?input=' + encodeURIComponent(JSON.stringify({ json: payload }));
-    return fetch(url, { headers: { accept: 'application/json' } }).then(function(res){
+    return fetch(proxyWrap(url), { headers: { accept: 'application/json' } }).then(function(res){
       return res.text().then(function(txt){
         var j = null;
         try { j = JSON.parse(txt); } catch (e) {}
@@ -928,28 +950,54 @@
     }).catch(function(){});
   }
 
+  // 記住上次成功嘅 snapshotId，之後就唔使再拉 600KB 嘅 snapshot
+  function snapKey(name, region){ return 'maimai_snap_' + name + '_' + region; }
+  function getSnap(name, region){
+    try { return localStorage.getItem(snapKey(name, region)); } catch(e){ return null; }
+  }
+  function putSnap(name, region, sid){
+    try { if (sid) localStorage.setItem(snapKey(name, region), sid); } catch(e){}
+  }
+
   function doImport(){
     var who = parseTomomaiUrl(document.getElementById('tomomaiUrl').value);
     if (!who){ setImportMsg('網址睇唔明 —— 應該似 https://www.tomomai.lol/profile/你嘅名', true); return; }
     var n = importLimit();
-    setImportMsg('讀取中…');
-    var region = who.region;
-    trpc('user.getPublicProfile', { username: who.name }).then(function(prof){
-      region = region || prof.profileMainRegion || 'intl';
-      return trpc('user.getPublicSnapshotData', { username: prof.name, region: region })
-        .catch(function(){ return trpc('user.getPublicSnapshotData', { userId: prof.id, region: region }); });
-    }).then(function(snap){
-      var sid = (snap && snap.snapshot && snap.snapshot.id) || null;
-      if (!sid) throw new Error('搵唔到最新 snapshot');
+    var region = who.region || 'intl';
+    setImportMsg('讀取中…' + (state.proxy ? '' : '（冇填代理，好可能失敗）'));
+
+    function fetchRecents(sid){
+      return trpc('user.getPublicRecentSongs', { snapshotId: sid, region: region })
+        .then(function(rec){ return { sid: sid, rec: rec }; });
+    }
+    function freshSnap(){
+      return trpc('user.getPublicProfile', { username: who.name }).then(function(prof){
+        region = who.region || prof.profileMainRegion || 'intl';
+        return trpc('user.getPublicSnapshotData', { username: prof.name || who.name, region: region })
+          .catch(function(){ return trpc('user.getPublicSnapshotData', { userId: prof.id, region: region }); });
+      }).then(function(snap){
+        var sid = (snap && snap.snapshot && snap.snapshot.id) || null;
+        if (!sid) throw new Error('搵唔到最新 snapshot');
+        putSnap(who.name, region, sid);
+        return sid;
+      });
+    }
+
+    var cached = getSnap(who.name, region);
+    var chain = cached
+      ? fetchRecents(cached).catch(function(){ return freshSnap().then(fetchRecents); })
+      : freshSnap().then(fetchRecents);
+
+    chain.then(function(x){
       var raw = document.getElementById('tomomaiRaw');
       if (raw) raw.textContent = TOMO + 'user.getPublicRecentSongs?input='
-        + encodeURIComponent(JSON.stringify({ json: { snapshotId: sid, region: region } }));
-      return trpc('user.getPublicRecentSongs', { snapshotId: sid, region: region });
-    }).then(function(rec){
-      applyImport(playsFromRecents(rec.recentPlays || rec.plays || [], n));
+        + encodeURIComponent(JSON.stringify({ json: { snapshotId: x.sid, region: region } }));
+      applyImport(playsFromRecents(x.rec.recentPlays || x.rec.plays || [], n));
     }).catch(function(e){
-      setImportMsg('讀唔到：' + (e && e.message ? e.message : e)
-        + '。瀏覽器擋咗跨網域請求 —— 請用下面「方法一」或手動入。', true);
+      var msg = e && e.message ? e.message : String(e);
+      setImportMsg('讀唔到：' + msg + (state.proxy
+        ? '。代理網址啱唔啱？開得到 https://你的-worker.workers.dev?u=https://www.tomomai.lol/ 先算通。'
+        : '。瀏覽器擋咗跨網域請求 —— 填上面「代理網址」就會通，或者用下面「複製 JSON」嘅方法。'), true);
     });
   }
 
@@ -1009,6 +1057,23 @@
   document.getElementById('tomomaiParse').addEventListener('click', function(){
     parseText(document.getElementById('tomomaiJson').value);
   });
+  document.getElementById('tomomaiPaste').addEventListener('click', function(){
+    var ta = document.getElementById('tomomaiJson');
+    function done(t){
+      if (!t || !t.trim()){ setImportMsg('剪貼板係空嘅。', true); ta.focus(); return; }
+      ta.value = t;
+      parseText(t);
+    }
+    if (navigator.clipboard && navigator.clipboard.readText){
+      navigator.clipboard.readText().then(done).catch(function(){
+        setImportMsg('瀏覽器唔准讀剪貼板（要 https 或者你拒絕咗）。請長按格仔手動貼上。', true);
+        ta.focus();
+      });
+    } else {
+      setImportMsg('呢個瀏覽器冇剪貼板 API。請長按格仔手動貼上。', true);
+      ta.focus();
+    }
+  });
   document.getElementById('tomomaiGo').addEventListener('click', function(){
     try { doImport(); } catch (e) { setImportMsg('出錯：' + (e && e.message ? e.message : e), true); }
   });
@@ -1036,9 +1101,30 @@
   document.getElementById('addPlay').addEventListener('click', function(){
     state.plays.push(blankPlay()); renderPlays(); save(); recalc();
   });
+  var pxEl = document.getElementById('tomomaiProxy');
+  if (pxEl){
+    pxEl.addEventListener('input', function(){ state.proxy = this.value.trim(); });
+    pxEl.addEventListener('change', function(){ state.proxy = this.value.trim(); save(); });
+  }
   document.getElementById('clearPlays').addEventListener('click', function(){
     state.plays = [blankPlay()]; renderPlays(); save(); recalc();
   });
+
+  // ---- 由 #p=<base64url> 直接載入（本地腳本 tools/pull.mjs 用）----
+  function readHash(){
+    var h = (location.hash || '').replace(/^#/, '');
+    if (h.indexOf('p=') !== 0) return false;
+    var b = h.slice(2).replace(/-/g, '+').replace(/_/g, '/');
+    while (b.length % 4) b += '=';
+    var j = null;
+    try { j = JSON.parse(atob(b)); } catch (e) { return false; }
+    if (!j || !j.plays) return false;
+    var rows = normalizePlays(j.plays, 50);
+    if (!rows.length) return false;
+    applyImport(rows);
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+    return true;
+  }
 
   // ================= 初始化 =================
   if (!load() || !state.plays.length){
@@ -1048,6 +1134,7 @@
   renderModeNote();
   renderPlays();
   recalc();
+  readHash();
   checkPlaysJson();
   runSelfTest();
 })();
