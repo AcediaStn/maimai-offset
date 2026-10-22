@@ -1,0 +1,38 @@
+name: Update plays
+
+# 幾時跑：
+#   - 每 20 分鐘自動跑一次（打完機返到屋企就已經係新嘅）
+#   - 或者你自己喺手機撳「Run workflow」即刻跑
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/20 * * * *'
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 由 tomomai 抄成績
+        env:
+          TOMOMAI_USER: steven      # ← 改做你個 tomomai username
+          TOMOMAI_REGION: intl      # ← intl 或者 asia
+          TOMOMAI_LIMIT: '10'       # ← 要幾多場
+        run: node tools/fetch-plays.mjs
+
+      - name: 有變先 commit
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -f plays.json ] && ! git diff --quiet -- plays.json; then
+            git add plays.json
+            git commit -m "chore: update plays.json"
+            git push
+            echo "✓ 已更新 plays.json"
+          else
+            echo "冇變，唔 commit"
+          fi
