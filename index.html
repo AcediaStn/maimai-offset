@@ -1,0 +1,1056 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="referrer" content="no-referrer">
+<title>maimai DX 判定偏移調整器 v0.6</title>
+<style>
+  :root{
+    --bg:#0f0f16; --card:#191922; --card2:#20202b; --line:#2e2e3d;
+    --text:#e9e9f2; --dim:#9a9ab0; --pink:#ff6fa5; --cyan:#57d8e8;
+    --late:#ff8a5c; --fast:#5cc8ff; --ok:#68e08a; --warn:#ffd166;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","Microsoft JhengHei",sans-serif;
+    font-size:15px; line-height:1.55;
+    padding:16px 14px 48px; max-width:560px; margin:0 auto;
+  }
+  h1{font-size:19px; margin:0 0 2px; letter-spacing:.5px}
+  h1 span.accent{color:var(--pink)}
+  h1 span.ver{font-size:11px; color:#6a6a80; font-weight:400}
+  .tagline{color:var(--dim); font-size:12.5px; margin-bottom:18px}
+  h2{font-size:14px; margin:22px 0 10px; color:var(--cyan); letter-spacing:.5px; font-weight:600}
+  h2 small{color:var(--dim); font-weight:400; letter-spacing:0; font-size:11.5px}
+  h3.sub-h{font-size:13px; margin:16px 0 8px; color:var(--cyan); font-weight:600; letter-spacing:.4px}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px}
+  label{font-size:13px; color:var(--dim); display:block; margin-bottom:5px}
+  input[type=number]{
+    width:100%; padding:10px 11px; font-size:16px; font-variant-numeric:tabular-nums;
+    background:var(--card2); color:var(--text); border:1px solid var(--line);
+    border-radius:9px; outline:none;
+  }
+  input[type=number]:focus{border-color:var(--cyan)}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  .seg{display:flex; gap:6px; flex-wrap:wrap}
+  .seg label{margin:0; flex:1 1 0; min-width:78px; display:block; cursor:pointer; user-select:none}
+  .seg input{display:none}
+  .seg span{
+    display:block; padding:9px 5px; text-align:center; font-size:12.5px; line-height:1.35;
+    background:var(--card2); border:1px solid var(--line); border-radius:9px; color:var(--dim);
+  }
+  .seg span small{font-size:10.5px; opacity:.75; display:block; margin-top:2px}
+  .seg input:checked + span{background:var(--pink); border-color:var(--pink); color:#14141c; font-weight:700}
+  .seg input:checked + span small{opacity:.85}
+  .hint{font-size:12px; color:var(--dim); margin-top:8px; line-height:1.6}
+  .hint b{color:var(--warn); font-weight:600}
+
+  /* plays */
+  .play-row{
+    display:grid; grid-template-columns:18px 1fr 24px; gap:7px; align-items:start;
+    padding:9px; background:var(--card2); border:1px solid var(--line);
+    border-radius:10px; margin-bottom:8px;
+  }
+  .play-row .idx{font-size:11.5px; color:var(--dim); text-align:center; padding-top:17px; font-variant-numeric:tabular-nums}
+  .fields{display:grid; gap:5px}
+  .fields.d2{grid-template-columns:1fr 1fr}
+  .fields.d6{grid-template-columns:repeat(3,minmax(0,1fr))}
+  textarea{
+    width:100%; min-height:90px; padding:10px 11px; font-size:12px; font-family:ui-monospace,Consolas,monospace;
+    background:var(--card2); color:var(--text); border:1px solid var(--line); border-radius:9px;
+    outline:none; resize:vertical; box-sizing:border-box;
+  }
+  textarea:focus{border-color:var(--cyan)}
+  .fld label{font-size:9.5px; color:var(--dim); display:block; margin:0 0 2px; text-align:center; letter-spacing:.2px; white-space:nowrap; overflow:hidden}
+  .fld.f-f label{color:var(--fast)}
+  .fld.f-l label{color:var(--late)}
+  .fld input{
+    width:100%; padding:6px 1px; text-align:center; font-size:14px; min-width:0;
+    font-variant-numeric:tabular-nums; background:#12121a; color:var(--text);
+    border:1px solid var(--line); border-radius:7px; outline:none;
+  }
+  .fld input:focus{border-color:var(--cyan)}
+  .del{background:none; border:none; color:var(--dim); font-size:17px; cursor:pointer; padding:4px; line-height:1; margin-top:12px}
+  .del:hover{color:var(--pink)}
+  .btn{
+    display:block; width:100%; padding:11px; background:var(--card2); color:var(--text);
+    border:1px solid var(--line); border-radius:10px; font-size:14px; cursor:pointer; margin-top:4px;
+  }
+  .btn:hover{border-color:var(--cyan)}
+  .btn.ghost{background:none; color:var(--dim); font-size:13px}
+
+  /* result */
+  #result{margin-top:6px}
+  .verdict{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap}
+  .verdict .big{font-size:26px; font-weight:800; letter-spacing:.5px}
+  .verdict .sub{color:var(--dim); font-size:13px}
+  .late-pos .big{color:var(--late)}
+  .fast-pos .big{color:var(--fast)}
+  .ok-pos .big{color:var(--ok)}
+  .bar{height:10px; border-radius:6px; overflow:hidden; display:flex; margin:12px 0 6px; background:#000}
+  .bar i{display:block; height:100%}
+  .bar .f{background:var(--fast)} .bar .l{background:var(--late)}
+  .barlbl{display:flex; justify-content:space-between; font-size:12px; color:var(--dim)}
+  .rec{margin-top:14px; padding:13px; border-radius:12px; background:var(--card2); border:1px solid var(--line)}
+  .rec .line1{font-size:13px; color:var(--dim)}
+  .rec .line2{font-size:20px; font-weight:800; margin-top:3px; color:var(--pink); font-variant-numeric:tabular-nums}
+  .rec .line3{font-size:12.5px; color:var(--dim); margin-top:6px}
+  .kv{display:grid; grid-template-columns:1fr auto; gap:3px 10px; font-size:12.5px; margin-top:10px}
+  .kv .k{color:var(--dim)} .kv .v{font-variant-numeric:tabular-nums; color:var(--text)}
+  ul.notes{margin:12px 0 0; padding-left:18px; font-size:12.5px; color:var(--dim)}
+  ul.notes li{margin-bottom:5px}
+  ul.notes li b{color:var(--warn); font-weight:600}
+  svg{display:block; width:100%; height:auto; margin-top:14px}
+  table{width:100%; border-collapse:collapse; font-size:12.5px; margin:10px 0}
+  td,th{border-bottom:1px solid var(--line); padding:5px 4px; text-align:right; font-variant-numeric:tabular-nums}
+  th{color:var(--dim); font-weight:500}
+  td:first-child,th:first-child{text-align:left}
+  details{margin-top:24px; border-top:1px solid var(--line); padding-top:16px}
+  summary{cursor:pointer; font-size:14px; color:var(--cyan)}
+  details p, details li{font-size:13px; color:var(--dim); line-height:1.7}
+  details b{color:var(--text)}
+  code{background:var(--card2); padding:1px 5px; border-radius:4px; font-size:12px; color:var(--cyan)}
+  .empty{color:var(--dim); font-size:13.5px; text-align:center; padding:18px 0}
+  .selftest{margin-top:12px; padding:9px 11px; border-radius:9px; font-size:12px; line-height:1.6; background:var(--card2); border:1px solid var(--line)}
+  .selftest.ok{border-color:#2c5c3a; color:var(--ok)}
+  .selftest.bad{border-color:#6b3030; color:#ff7b7b}
+</style>
+</head>
+<body>
+
+<h1>maimai DX <span class="accent">判定偏移調整器</span> <span class="ver">v0.6</span></h1>
+<div class="tagline">輸入最近幾場嘅 FAST / LATE，計出你應該點調「判定タイミング A / B」</div>
+
+<h2>① 現況同設定</h2>
+<div class="card">
+  <div class="grid2">
+    <div>
+      <label for="offsetA">判定調整 A</label>
+      <input id="offsetA" type="number" step="0.1" min="-2" max="2" value="0" inputmode="decimal">
+    </div>
+    <div>
+      <label for="offsetB">判定調整 B</label>
+      <input id="offsetB" type="number" step="0.1" min="-2" max="2" value="0" inputmode="decimal">
+    </div>
+  </div>
+  <div class="hint">範圍 −2.0 ~ +2.0，1.0 = 16.67 ms。唔記得就填 0。</div>
+
+  <h3 class="sub-h">你想調邊一個？</h3>
+  <div class="seg">
+    <label><input type="radio" name="target" value="A"><span>判定 A<small>音押・音畫同步</small></span></label>
+    <label><input type="radio" name="target" value="B" checked><span>判定 B<small>目押・輸入判定</small></span></label>
+  </div>
+
+  <h3 class="sub-h">FAST / LATE 喺邊啲判定會出現？</h3>
+  <div class="seg">
+    <label><input type="radio" name="shown" value="16.6667" checked><span>CP 冇<small>淨係 P / G / GD</small></span></label>
+    <label><input type="radio" name="shown" value="0"><span>連 CP 都有<small>只有 MISS 冇</small></span></label>
+  </div>
+  <div class="hint">已經用你 Empire of Winter 嗰場證實咗係「CP 冇」：FAST 110 + LATE 62 = 172，啱啱好等於 P 165 + 7 Great。如果 CP 都計，應該會係 737。</div>
+
+  <h3 class="sub-h">你打波穩定度（簡單模式用）</h3>
+  <div class="seg">
+    <label><input type="radio" name="sigma" value="12"><span>好穩<small>±12ms</small></span></label>
+    <label><input type="radio" name="sigma" value="16.7" checked><span>實測<small>±16.7ms</small></span></label>
+    <label><input type="radio" name="sigma" value="22"><span>普通<small>±22ms</small></span></label>
+    <label><input type="radio" name="sigma" value="30"><span>波動大<small>±30ms</small></span></label>
+  </div>
+  <div class="hint">預設 16.7 係你最近 10 場擬合出嚟嘅實測值。詳細模式會自己擬合 σ，唔使揀。</div>
+</div>
+
+<h2>② 輸入成績 <small>（最少 3 場、合共 200 個判定以上）</small></h2>
+<div class="card">
+  <h3 class="sub-h">自動匯入（tomomai）</h3>
+  <div class="fld"><label>profile 網址</label>
+    <input id="tomomaiUrl" type="text" placeholder="https://www.tomomai.lol/profile/你的名" autocomplete="off" spellcheck="false"></div>
+  <div class="fld"><label>要幾多場</label>
+    <input id="tomomaiN" type="number" min="1" max="50" step="1" value="10" inputmode="numeric"></div>
+  <button class="btn" id="tomomaiGo" type="button">讀取最近嘅場次</button>
+  <button class="btn ghost" id="tomomaiPick" type="button">或者：揀一個 JSON 檔</button>
+  <button class="btn" id="tomomaiUseJson" type="button" style="display:none"></button>
+  <input id="tomomaiFile" type="file" accept=".json,application/json,text/plain" style="display:none">
+  <div id="tomomaiMsg" class="hint" style="margin-top:8px; min-height:20px"></div>
+  <details style="margin-top:8px">
+    <summary>讀唔到？手動方法（貼 JSON ／ 睇 API 網址）</summary>
+    <div>
+      <p><b>「讀取」失敗係正常嘅。</b>瀏覽器唔准一個網頁直接讀另一個網站嘅資料（CORS 限制），
+      所以嗰粒掣有機會出 <code>Failed to fetch</code>。咁就只好手動，兩個方法揀一個：</p>
+      <p><b>方法一：</b>喺電腦開下面條網址，Ctrl+A 全選、複製，貼落最底個格再撳「解析」。</p>
+      <div id="tomomaiRaw" class="hint" style="word-break:break-all; color:var(--cyan); margin-bottom:8px"></div>
+      <p><b>方法二：</b>自己整一個簡化版 JSON（每場一行）：</p>
+      <pre style="font-size:11px; overflow-x:auto; background:var(--card2); padding:8px; border-radius:8px; margin:0 0 8px">{"plays":[
+  {"song":"曲名","cp":754,"p":313,"sl":57,"tc":64,"f":162,"l":189}
+]}</pre>
+      <p><code>cp</code> = 總 Critical Perfect、<code>p</code> = 總 Perfect、
+      <code>sl</code> = 滑鍵總數、<code>tc</code> = 觸控總數、<code>f</code>/<code>l</code> = FAST/LATE。</p>
+      <textarea id="tomomaiJson" placeholder="或者直接貼 JSON 喺呢度…" spellcheck="false"></textarea>
+      <button class="btn" id="tomomaiParse" type="button">解析貼落嚟嘅 JSON</button>
+    </div>
+  </details>
+
+  <div class="seg" style="margin:16px 0 12px">
+    <label><input type="radio" name="mode" value="simple" checked><span>簡單模式<small>只入 FAST / LATE</small></span></label>
+    <label><input type="radio" name="mode" value="detail"><span>詳細模式<small>連判定分佈一齊入</small></span></label>
+  </div>
+  <div id="modeNote" class="hint" style="margin-bottom:10px"></div>
+  <div id="plays"></div>
+  <button class="btn" id="addPlay" type="button">＋ 加多一場</button>
+  <button class="btn ghost" id="clearPlays" type="button">清空</button>
+  <div class="hint">遊戲內「外枠表示」設成 FAST/LATE，或者睇結算畫面嘅數字。</div>
+</div>
+
+<h2>③ 建議</h2>
+<div id="result"><div class="card"><div class="empty">輸入數字之後就會出結果</div></div></div>
+
+<details open>
+  <summary>自我檢查（我冇辦法跑測試，所以由頁面自己測）</summary>
+  <div>
+    <div id="selftest" class="selftest">未跑</div>
+    <p style="margin-top:10px">做法：用已知答案（μ = +12 ms、σ = 35 ms）生成一組合成判定數據，再掉返入擬合器，睇吓搵唔搵得返。<b>如果呢度紅咗，就代表詳細模式嘅數學有問題，唔好信佢個結果。</b></p>
+  </div>
+</details>
+
+<details>
+  <summary>原理同注意事項</summary>
+  <div>
+    <p><b>判定窗口（TAP / HOLD / BREAK）</b></p>
+    <table>
+      <tr><th>判定</th><th>偏差範圍</th></tr>
+      <tr><td>CRITICAL PERFECT</td><td>±16.67 ms</td></tr>
+      <tr><td>PERFECT</td><td>±16.67 ~ ±50 ms</td></tr>
+      <tr><td>GREAT</td><td>±50 ~ ±100 ms</td></tr>
+      <tr><td>GOOD</td><td>±100 ~ ±150 ms</td></tr>
+      <tr><td>MISS</td><td>超過 ±150 ms</td></tr>
+    </table>
+    <p><b>點解淨係 FAST / LATE 唔夠？</b><br>
+    佢哋只話你「早定遲」，冇話「幾多 ms」。換算要假設你嘅誤差係鐘形分佈：平均值 μ（偏幾多）、離散度 σ（幾唔穩）。一條方程式、兩個未知數 → <b>σ 靠 FAST/LATE 係估唔到嘅</b>。所以簡單模式要你揀 σ，詳細模式靠判定分佈自己 fit。</p>
+    <p><b>詳細模式點解 work？</b><br>
+    兩邊嘅資訊係<b>互補</b>嘅：<br>
+    · <b>CP 同 P 嘅比例 → σ。</b>σ 細嘅人幾乎全部都係 CP；σ 大嘅人會跌落 P。你三場夾埋有 1434 個乾淨 CP 對 582 個 P —— CP 佔 71%，呢個比例淨係可能來自一個好細嘅 σ（大約 16ms）。<br>
+    · <b>FAST / LATE 比例 → μ 嘅正負同大細。</b>判定分佈係<b>對稱</b>嘅（打早 3ms 同打遲 3ms 嘅判定數一模一樣），所以淨係靠佢分唔出你偏邊邊；一定要靠 FAST/LATE 話你聽。<br>
+    用嘅係<b>最大似然</b>：搵一組 (μ, σ) 令兩邊同時最有可能出現。μ 嘅區間用 profile likelihood（ΔlogL = 1.92）。</p>
+    <p><b>點解唔用 G / GD / M？</b><br>
+    我試過用埋佢哋，結果 σ 由 16ms 被拉到 28ms —— 因為真人有時會手滑打出一個 Great，而鐘形分佈認為「σ=16 嘅人打出 Great」幾乎不可能（機率 1e-9），於是佢寧願犧牲 CP 比例去解釋嗰幾個 Great。<br>
+    但嗰幾個 Great 反映嘅係「手滑」，唔係「你嘅判定鬆」。所以只留 CP 同 P 兩格，σ 就唔會被尾巴拉歪。</p>
+    <p><b>歷史遺留嘅近似公式（而家已經唔用）</b><br>
+    如果有一日證實咗 CP 都會出 FAST/LATE，就會變成 r ≈ Φ(μ/σ)，即 <code>Δ ≈ σ · Φ⁻¹(r) / 16.67</code>（例：r = 0.65、σ = 30 → Δ ≈ 0.69）。呢條式下面仲留咗做對照。</p>
+    <p><b>小心：判定分佈有污染</b><br>
+    SLIDE 幾乎永遠 CP、TOUCH 打早咗都係 CP、EX note 一定 CP。所以 CP 個數會被拉高，直接 fit 會得出一個錯細咗嘅 σ。<br>
+    我嘅處理：<b>入數嗰陣分開填「滑鍵」同「觸控」嘅總數，計之前由 CP 扣走</b>。你嗰場：565 CP − 101 滑鍵 − 37 觸控 = 427 個乾淨 CP。</p>
+    <p><b>偏移單位</b><br>
+    1.0 = 60fps 一格 = 16.67 ms；0.1 = 1.67 ms。範圍 −2.0 ~ +2.0（即 ±33.3 ms）。</p>
+    <p><b>方向</b><br>
+    LATE 多 → 加（+）；FAST 多 → 減（−）。加數值 = 判定點推遲。</p>
+    <p><b>會影響數字嘅雜訊</b></p>
+    <ul>
+      <li>如果 CP 都會出 FAST/LATE，咁 SLIDE 都會計入去 → 佢哋嘅早／遲同你手指無關，會將比例拉向 50%。呢個情況下算出嚟嘅偏移會<b>偏向低估</b>（保守）。</li>
+      <li>唔同曲目嘅 TAP / SLIDE / TOUCH 比例差好遠 → 盡量用同類譜面。</li>
+      <li>一次過調太多會 overshoot。建議一次最多 0.5。</li>
+      <li>機台喇叭延遲、屏幕延遲、當日狀態都會影響。</li>
+    </ul>
+    <p><b>資料來源</b><br>
+    判定窗口：SilentBlue.RemyWiki / donmai「GekiChuMai Timing Windows and Offsets」；判定調整範圍同 1.0 = 1 frame：萌娘百科 maimai 條目「遊戲設置」。</p>
+  </div>
+</details>
+
+<script>
+(function(){
+  "use strict";
+
+  // ================= 常數 =================
+  var CP_EDGE   = 1000/60;    // 16.6667 ms
+  var P_EDGE    = 50;
+  var G_EDGE    = 100;
+  var GD_EDGE   = 150;
+  var MS_PER_UNIT = 1000/60;  // 判定調整 1.0 = 1 frame
+
+  // ================= 統計工具 =================
+  function erf(x){
+    var s = x < 0 ? -1 : 1;
+    x = Math.abs(x);
+    var t = 1/(1 + 0.3275911*x);
+    var poly = ((((1.061405429*t - 1.453152027)*t + 1.421413741)*t - 0.284496736)*t + 0.254829592)*t;
+    return s*(1 - poly*Math.exp(-x*x));
+  }
+  function ncdf(z){ return 0.5*(1 + erf(z/Math.SQRT2)); }
+  function safeLog(x){ return x > 0 ? Math.log(x) : -1e9; }
+
+  // |e| ∈ (lo, hi] 嘅機率（兩邊加埋）
+  function bandMass(lo, hi, mu, sg){
+    var a = ncdf((hi - mu)/sg) - ncdf((lo - mu)/sg);
+    var b = ncdf((-lo - mu)/sg) - ncdf((-hi - mu)/sg);
+    var m = a + b;
+    return m > 0 ? m : 0;
+  }
+
+  // FAST / LATE 機率：|e| ∈ (aEdge, bEdge]
+  function flMasses(mu, sg, aEdge, bEdge){
+    var pL = ncdf((bEdge - mu)/sg) - ncdf((aEdge - mu)/sg);
+    var pF = ncdf((-aEdge - mu)/sg) - ncdf((-bEdge - mu)/sg);
+    return { pL: pL > 0 ? pL : 0, pF: pF > 0 ? pF : 0 };
+  }
+
+  // r = LATE / (FAST+LATE)，u = μ/σ
+  function rAt(u, w, wb){
+    var pL = ncdf(wb - u) - ncdf(w - u);
+    var pF = ncdf(-w - u) - ncdf(-wb - u);
+    var d  = pL + pF;
+    if (d < 1e-12) return 0.5;
+    return pL / d;
+  }
+  function solveU(r, w, wb){
+    var lo = -40, hi = 40;
+    for (var i = 0; i < 220; i++){
+      var mid = (lo + hi)/2;
+      if (rAt(mid, w, wb) < r) lo = mid; else hi = mid;
+    }
+    return (lo + hi)/2;
+  }
+  // Δ（判定調整單位）；正 = 加
+  function deltaFor(r, sigma, aEdge, bEdge){
+    var w  = aEdge/sigma;
+    var wb = bEdge/sigma;
+    var u  = solveU(r, w, wb);
+    return u * sigma / MS_PER_UNIT;
+  }
+
+  // |e| > hi 嘅機率（MISS）
+  function tailMass(hi, mu, sg){
+    var m = 1 - (ncdf((hi - mu)/sg) - ncdf((-hi - mu)/sg));
+    return m > 0 ? m : 0;
+  }
+
+  // 對數似然
+  // 判定分佈只用 CP 同 P 兩格：G / GD / M 主要係手滑同滑鍵觸控 miss，唔係你嘅穩定度，
+  // 用佢哋一齊 fit 會被尾巴拉歪 σ（實測過：同一批數據會由 16ms 拉去 28ms）。
+  function logLik(mu, sg, T, F, L, aEdge, bEdge){
+    if (!(sg > 0) || !isFinite(sg)) return -1e12;
+    var ll = 0;
+    var ncp = T.cp + T.p;
+    if (ncp > 0){
+      var mCP = ncdf((CP_EDGE - mu)/sg) - ncdf((-CP_EDGE - mu)/sg);
+      var mP  = bandMass(CP_EDGE, P_EDGE, mu, sg);
+      var s = mCP + mP;
+      if (!(s > 1e-12)) return -1e12;
+      if (T.cp > 0) ll += T.cp * safeLog(mCP/s);
+      if (T.p  > 0) ll += T.p  * safeLog(mP/s);
+    }
+    var nfl = F + L;
+    if (nfl > 0){
+      var mm = flMasses(mu, sg, aEdge, bEdge);
+      var t = mm.pL + mm.pF;
+      if (!(t > 1e-12)) return -1e12;
+      if (F > 0) ll += F * safeLog(mm.pF/t);
+      if (L > 0) ll += L * safeLog(mm.pL/t);
+    }
+    return ll;
+  }
+
+  // 2D 擬合 (μ, σ)
+  function fitDetail(T, F, L, aEdge, bEdge){
+    var nnd = T.cp + T.p;
+    if (nnd <= 0 && (F + L) <= 0) return null;
+
+    var hasTier = nnd > 0;
+    var hasFL   = (F + L) > 0;
+
+    // 粗搜（只用一個座標：如果冇 tier 數據，σ 唔可辨識，改用固定 σ）
+    if (!hasTier){
+      return { mu: solveMu1D(F, L, state.sigma, aEdge, bEdge), sigma: state.sigma, hasTier: false, hasFL: hasFL,
+               unidentified: true, muLo: null, muHi: null };
+    }
+
+    var best = { mu: 0, sg: 30, ll: -Infinity };
+    var mu, sg, ll;
+    for (mu = -60; mu <= 60.0001; mu += 1){
+      for (sg = 5; sg <= 90.0001; sg += 1){
+        ll = logLik(mu, sg, T, F, L, aEdge, bEdge);
+        if (ll > best.ll) best = { mu: mu, sg: sg, ll: ll };
+      }
+    }
+    // 細搜
+    var b0 = best;
+    for (mu = b0.mu - 1; mu <= b0.mu + 1.0001; mu += 0.05){
+      for (sg = b0.sg - 1; sg <= b0.sg + 1.0001; sg += 0.1){
+        ll = logLik(mu, sg, T, F, L, aEdge, bEdge);
+        if (ll > best.ll) best = { mu: mu, sg: sg, ll: ll };
+      }
+    }
+
+    // profile likelihood 求 μ 嘅 95% 區間
+    var profMax = -Infinity, profs = [], mus = [];
+    for (mu = -60; mu <= 60.0001; mu += 0.5){
+      var bs = -Infinity;
+      for (sg = 5; sg <= 90.0001; sg += 1){
+        ll = logLik(mu, sg, T, F, L, aEdge, bEdge);
+        if (ll > bs) bs = ll;
+      }
+      mus.push(mu); profs.push(bs);
+      if (bs > profMax) profMax = bs;
+    }
+    var thr = profMax - 1.92;   // 95%, 1 個參數
+    var muLo = null, muHi = null;
+    for (var i = 0; i < profs.length; i++){
+      if (profs[i] >= thr){
+        if (muLo === null) muLo = mus[i];
+        muHi = mus[i];
+      }
+    }
+
+    return { mu: best.mu, sigma: best.sg, hasTier: true, hasFL: hasFL,
+             unidentified: false, muLo: muLo, muHi: muHi };
+  }
+
+  // 冇 tier 數據時，靠 FAST/LATE + 固定 σ 反推 μ
+  function solveMu1D(F, L, sg, aEdge, bEdge){
+    var n = F + L;
+    if (n <= 0) return 0;
+    var r = L/n;
+    var w = aEdge/sg, wb = bEdge/sg;
+    var u = solveU(r, w, wb);
+    return u * sg;
+  }
+
+  // 同一個輸入唔好重算（每打一個字都會觸發）
+  var fitCache = { key: '', val: null };
+  function fitCached(T, F, L, aEdge, bEdge){
+    var key = [T.cp, T.p, F, L, aEdge, bEdge].join('|');
+    if (fitCache.key === key) return fitCache.val;
+    fitCache.key = key;
+    fitCache.val = fitDetail(T, F, L, aEdge, bEdge);
+    return fitCache.val;
+  }
+
+  function wilson(p, n, z){
+    if (n <= 0) return [0, 1];
+    var den = 1 + z*z/n;
+    var c   = (p + z*z/(2*n))/den;
+    var h   = z*Math.sqrt(p*(1-p)/n + z*z/(4*n*n))/den;
+    return [Math.max(0, c - h), Math.min(1, c + h)];
+  }
+
+  function q1(x){ return Math.round(x*10)/10; }
+  function fmtOff(x){ return (x > 0 ? "+" : "") + x.toFixed(1); }
+  function fmtNum(x, d){ return (x > 0 ? "+" : "") + x.toFixed(d); }
+  function pct(x){ return (x*100).toFixed(1) + "%"; }
+
+  // ================= 狀態 =================
+  var state = {
+    mode: 'simple',
+    target: 'B',
+    shown: 16.6667,
+    sigma: 16.7,
+    a: 0, b: 0,
+    plays: []
+  };
+
+  function blankPlay(){
+    return { cp:'', p:'', sl:'', tc:'', f:'', l:'' };
+  }
+  function numOf(v){
+    var n = parseFloat(v);
+    return (isFinite(n) && n > 0) ? n : 0;
+  }
+
+  var playsEl = document.getElementById('plays');
+  var resultEl = document.getElementById('result');
+  var modeNoteEl = document.getElementById('modeNote');
+
+  // ================= 輸入列 =================
+  var FIELDS_SIMPLE = [['f','FAST','f-f'], ['l','LATE','f-l']];
+  var FIELDS_DETAIL = [
+    ['cp','CP',''], ['p','P',''], ['sl','滑鍵',''],
+    ['tc','觸控',''], ['f','FAST','f-f'], ['l','LATE','f-l']
+  ];
+
+  function renderPlays(){
+    playsEl.innerHTML = '';
+    var fields = state.mode === 'detail' ? FIELDS_DETAIL : FIELDS_SIMPLE;
+    var cls = state.mode === 'detail' ? 'd6' : 'd2';
+
+    state.plays.forEach(function(p, i){
+      var row = document.createElement('div');
+      row.className = 'play-row';
+
+      var idx = document.createElement('div');
+      idx.className = 'idx';
+      idx.textContent = (i + 1);
+
+      var wrap = document.createElement('div');
+      wrap.className = 'fields ' + cls;
+
+      fields.forEach(function(f){
+        var fld = document.createElement('div');
+        fld.className = 'fld' + (f[2] ? ' ' + f[2] : '');
+        var lab = document.createElement('label');
+        lab.textContent = f[1];
+        var inp = document.createElement('input');
+        inp.type = 'number';
+        inp.inputMode = 'numeric';
+        inp.min = '0';
+        inp.step = '1';
+        inp.value = p[f[0]] === '' ? '' : p[f[0]];
+        inp.addEventListener('input', function(){
+          p[f[0]] = inp.value;
+          save();
+          recalc();
+        });
+        fld.appendChild(lab);
+        fld.appendChild(inp);
+        wrap.appendChild(fld);
+      });
+
+      var del = document.createElement('button');
+      del.className = 'del';
+      del.type = 'button';
+      del.textContent = '×';
+      del.addEventListener('click', function(){
+        state.plays.splice(i, 1);
+        if (!state.plays.length) state.plays.push(blankPlay());
+        renderPlays(); save(); recalc();
+      });
+
+      row.appendChild(idx);
+      row.appendChild(wrap);
+      row.appendChild(del);
+      playsEl.appendChild(row);
+    });
+  }
+
+  function renderModeNote(){
+    if (state.mode === 'detail'){
+      modeNoteEl.innerHTML = '每場入 6 個數：<b style="color:var(--cyan)">CP</b>、<b style="color:var(--cyan)">P</b>、<b style="color:var(--cyan)">滑鍵</b>、<b style="color:var(--cyan)">觸控</b>、<b style="color:var(--cyan)">FAST</b>、<b style="color:var(--cyan)">LATE</b>。<br>'
+        + '滑鍵同觸控幾乎永遠都被判 CP，所以計之前會由 CP 扣走。<br>'
+        + 'G / GD / M 唔使入 —— 佢哋主要係手滑同滑鍵觸控嘅 miss，入埋反而會將 σ 拉大。';
+    } else {
+      modeNoteEl.innerHTML = '每場只入 <b style="color:var(--cyan)">FAST</b> 同 <b style="color:var(--cyan)">LATE</b> 總數。σ 用上面 ① 你揀嘅值。';
+    }
+  }
+
+  // ================= 圖表 =================
+  function buildChart(r, sigma, aEdge, bEdge, dRec){
+    var W = 340, H = 168, PL = 38, PR = 12, PT = 12, PB = 26;
+    var xMin = -1.5, xMax = 1.5;
+    function X(v){ return PL + (v - xMin)/(xMax - xMin)*(W - PL - PR); }
+    function Y(p){ return PT + (1 - p)*(H - PT - PB); }
+
+    var w  = aEdge/sigma;
+    var wb = bEdge/sigma;
+    var u0 = solveU(r, w, wb);
+
+    var pts = [], N = 140, i, d, u;
+    for (i = 0; i <= N; i++){
+      d = xMin + (xMax - xMin)*i/N;
+      u = u0 - d*MS_PER_UNIT/sigma;
+      pts.push(X(d).toFixed(1) + ',' + Y(rAt(u, w, wb)).toFixed(1));
+    }
+
+    var s = '';
+    s += '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg">';
+    s += '<rect x="' + PL + '" y="' + PT + '" width="' + (W-PL-PR) + '" height="' + (H-PT-PB) + '" fill="#12121a" stroke="#2e2e3d"/>';
+    s += '<line x1="' + PL + '" y1="' + Y(0.5) + '" x2="' + (W-PR) + '" y2="' + Y(0.5) + '" stroke="#3a3a50" stroke-dasharray="3 3"/>';
+    s += '<text x="' + (PL-5) + '" y="' + (Y(0.5)+4) + '" fill="#7a7a92" font-size="9" text-anchor="end">50%</text>';
+    s += '<line x1="' + X(0) + '" y1="' + PT + '" x2="' + X(0) + '" y2="' + (H-PB) + '" stroke="#3a3a50"/>';
+    s += '<text x="' + X(0) + '" y="' + (H-PB+12) + '" fill="#7a7a92" font-size="9" text-anchor="middle">現在</text>';
+    s += '<polyline fill="none" stroke="#ff6fa5" stroke-width="2" points="' + pts.join(' ') + '"/>';
+    s += '<circle cx="' + X(0) + '" cy="' + Y(Math.max(0.001, Math.min(0.999, r))) + '" r="4" fill="#57d8e8"/>';
+    if (Math.abs(dRec) > 1e-6 && dRec >= xMin && dRec <= xMax){
+      s += '<circle cx="' + X(dRec) + '" cy="' + Y(0.5) + '" r="4" fill="#68e08a"/>';
+      s += '<line x1="' + X(dRec) + '" y1="' + Y(0.5) + '" x2="' + X(dRec) + '" y2="' + (H-PB) + '" stroke="#68e08a" stroke-dasharray="2 3"/>';
+      s += '<text x="' + X(dRec) + '" y="' + (H-PB+12) + '" fill="#68e08a" font-size="9" text-anchor="middle">' + fmtOff(q1(dRec)) + '</text>';
+    }
+    s += '<text x="' + (W-PR) + '" y="' + (H-2) + '" fill="#7a7a92" font-size="9" text-anchor="end">調整量 →</text>';
+    s += '<text x="' + (PL+4) + '" y="' + (PT+11) + '" fill="#7a7a92" font-size="9">LATE 比例</text>';
+    s += '</svg>';
+    return s;
+  }
+
+  // ================= 主計算 =================
+  function collect(){
+    var F = 0, L = 0;
+    var raw = { cp:0, p:0, sl:0, tc:0 };
+    state.plays.forEach(function(p){
+      F += numOf(p.f);
+      L += numOf(p.l);
+      for (var k in raw) raw[k] += numOf(p[k]);
+    });
+    // 滑鍵 / 觸控 幾乎永遠 CP，要由 CP 扣走，否則 σ 會估細
+    var dirty  = raw.sl + raw.tc;
+    var cleanCP = Math.max(0, raw.cp - dirty);
+    return {
+      F: F, L: L,
+      T: { cp: cleanCP, p: raw.p },
+      rawCP: raw.cp, slide: raw.sl, touch: raw.tc
+    };
+  }
+
+  function recalc(){
+    var c = collect();
+    var F = c.F, L = c.L, T = c.T;
+    var n = F + L;
+    var aEdge = state.shown;
+    var bEdge = GD_EDGE;
+
+    if (n <= 0){
+      resultEl.innerHTML = '<div class="card"><div class="empty">輸入數字之後就會出結果</div></div>';
+      return;
+    }
+
+    var r = L/n;
+    var ci = wilson(r, n, 1.96);
+
+    // ---- 求 μ 同 σ ----
+    var avgMu, usedSigma, detail = null, unidentified = false;
+    if (state.mode === 'detail' && (T.cp + T.p) > 0){
+      detail = fitCached(T, F, L, aEdge, bEdge);
+      if (detail){
+        avgMu = detail.mu;
+        usedSigma = detail.sigma;
+        unidentified = detail.unidentified;
+      }
+    }
+    if (avgMu === undefined){
+      usedSigma = state.sigma;
+      avgMu = solveMu1D(F, L, usedSigma, aEdge, bEdge);
+    }
+
+    var dMain = avgMu / MS_PER_UNIT;
+
+    // 合理範圍
+    var dLo, dHi;
+    if (detail && detail.hasTier && detail.muLo !== null){
+      dLo = detail.muLo / MS_PER_UNIT;
+      dHi = detail.muHi / MS_PER_UNIT;
+    } else {
+      dLo = deltaFor(ci[0], usedSigma/1.5, aEdge, bEdge);
+      dHi = deltaFor(ci[1], usedSigma*1.5, aEdge, bEdge);
+    }
+    dLo = Math.max(-2, dLo);
+    dHi = Math.min(2, dHi);
+
+    // 方向 + 顯著性
+    var z = (L - F)/Math.sqrt(n);
+    var sig = Math.abs(z) >= 1.96;
+    var dir = r > 0.5 ? 'late' : (r < 0.5 ? 'fast' : 'even');
+    var cur = state.target === 'A' ? state.a : state.b;
+    var dRec = q1(dMain);
+    var curClass = dir === 'late' ? 'late-pos' : (dir === 'fast' ? 'fast-pos' : 'ok-pos');
+
+    // ---- 砌畫面 ----
+    var h = '<div class="card">';
+
+    h += '<div class="verdict ' + curClass + '">';
+    if (!sig) h += '<div class="big">大致平衡</div>';
+    else if (dir === 'late') h += '<div class="big">偏慢 LATE</div>';
+    else h += '<div class="big">偏快 FAST</div>';
+    h += '<div class="sub">' + n + ' 個判定 · LATE ' + pct(r) + '</div></div>';
+
+    var fpct = F/n*100;
+    h += '<div class="bar"><i class="f" style="width:' + fpct.toFixed(2) + '%"></i>'
+       + '<i class="l" style="width:' + (100-fpct).toFixed(2) + '%"></i></div>';
+    h += '<div class="barlbl"><span>FAST ' + F + '（' + pct(F/n) + '）</span>'
+       + '<span>LATE ' + L + '（' + pct(L/n) + '）</span></div>';
+
+    // 參數摘要
+    h += '<div class="kv">';
+    h += '<div class="k">推算平均偏差 μ</div><div class="v">' + fmtNum(avgMu, 1) + ' ms</div>';
+    h += '<div class="k">穩定度 σ（' + (detail ? '擬合' : '你揀嘅') + '）</div><div class="v">' + usedSigma.toFixed(1) + ' ms</div>';
+    if (state.mode === 'detail' && detail) {
+      h += '<div class="k">用咗嘅判定樣本</div><div class="v">CP ' + T.cp + ' + P ' + T.p + '（共 ' + (T.cp + T.p) + '）</div>';
+      h += '<div class="k">扣走嘅污染</div><div class="v">滑鍵 ' + c.slide + ' + 觸控 ' + c.touch + '</div>';
+    }
+    h += '</div>';
+
+    // 建議
+    var kk = Math.floor(Math.abs(dMain)/0.1 + 1e-9);
+    if (kk < 1) kk = 1;
+    var recStep = kk*0.1*(dMain > 0 ? 1 : -1);
+
+    if (!sig || Math.abs(dRec) < 0.05){
+      var why = !sig
+        ? 'FAST 同 LATE 差距喺誤差範圍之內（z = ' + z.toFixed(2) + '）。'
+        : '雖然有偏差，但換算返只有 ' + fmtNum(dMain*MS_PER_UNIT, 1) + ' ms，細過判定調整最細一格（0.1 ≈ 1.67 ms）。';
+      h += '<div class="rec"><div class="line1">建議</div>'
+         + '<div class="line2" style="color:var(--ok)">唔使改</div>'
+         + '<div class="line3">' + why + '打多幾場先再睇。</div></div>';
+    } else {
+      var newVal = cur + recStep, clamped = false;
+      if (newVal > 2){ newVal = 2; clamped = true; }
+      if (newVal < -2){ newVal = -2; clamped = true; }
+
+      h += '<div class="rec">';
+      h += '<div class="line1">建議：判定調整 ' + state.target + ' 由 ' + fmtOff(cur) + ' →</div>';
+      h += '<div class="line2">' + fmtOff(q1(newVal)) + '</div>';
+      h += '<div class="line3">推算要 ' + (dMain >= 0 ? '+' : '') + dMain.toFixed(2) + ' 格（' + fmtNum(q1(dMain*MS_PER_UNIT), 1) + ' ms）；'
+         + '機器 0.1 先一格，所以改 ' + fmtOff(q1(recStep)) + '（' + fmtNum(q1(recStep*MS_PER_UNIT), 1) + ' ms）。'
+         + (Math.abs(dMain) > Math.abs(recStep) + 1e-9
+             ? '改完仲有 ' + fmtNum(q1((dMain - recStep)*MS_PER_UNIT), 1) + ' ms 殘餘 —— 打幾首再量。' : '')
+         + '合理範圍 ' + fmtOff(q1(dLo)) + ' ~ ' + fmtOff(q1(dHi)) + '</div>';
+      h += '</div>';
+
+      if (clamped){
+        h += '<ul class="notes"><li><b>' + state.target + ' 已經到 ±2.0 極限。</b>試下調另一個（A/B），或者叫店員 check 機台延遲。</li></ul>';
+      }
+      if (Math.abs(dRec) > 0.5){
+        h += '<ul class="notes"><li><b>幅度偏大。</b>建議分兩步：先調 ' + fmtOff(q1(dRec/2)) + '，打 3–5 首再入數睇殘餘。</li></ul>';
+      }
+    }
+
+    // 警告
+    var notes = [];
+    if (n < 100) notes.push('<b>樣本太少（' + n + ' 個）。</b>最少 200 個以上先可靠。');
+    if (state.mode === 'detail' && !detail) notes.push('<b>詳細模式但冇入判定數。</b>已自動退回用 ① 嘅 σ。');
+    if (state.mode === 'detail' && detail && c.slide + c.touch === 0 && c.rawCP > 0){
+      notes.push('<b>你冇填滑鍵 / 觸控總數。</b>呢兩類幾乎永遠都被判 CP，唔扣走嘅話 σ 會估細、建議幅度會被拉大。');
+    }
+    if (unidentified) notes.push('<b>σ 冇得由 FAST/LATE 推出。</b>請入判定分佈，或者用簡單模式。');
+    if (detail && detail.hasTier){
+      if (detail.sigma <= 5.2) notes.push('<b>擬合出嚟嘅 σ 貼近下限（5ms）。</b>你嘅判定分佈太集中，實際 σ 可能更細 —— 或者係你入錯數。');
+      if (detail.sigma >= 89.8) notes.push('<b>擬合出嚟嘅 σ 貼近上限（90ms）。</b>判定分佈太散，可能有場次極端。');
+      if (detail.muLo === null) notes.push('<b>μ 嘅信賴區間去到邊界。</b>數據可能唔夠。');
+    }
+    var bad = 0;
+    state.plays.forEach(function(p){
+      var f = numOf(p.f), l = numOf(p.l), t = f + l;
+      if (t >= 50 && Math.max(f, l)/t > 0.85) bad++;
+    });
+    if (bad) notes.push('<b>有 ' + bad + ' 場比例極端（>85% 單邊）。</b>可能太難或者機台波動，考慮剔走。');
+    if (notes.length){
+      h += '<ul class="notes">' + notes.map(function(t){ return '<li>' + t + '</li>'; }).join('') + '</ul>';
+    }
+
+    // 圖
+    h += buildChart(r, usedSigma, aEdge, bEdge, dMain);
+    h += '<div class="hint">粉線 = 喺唔同 offset 之下預測嘅 LATE 比例。綠點 = 平衡位（即建議）。藍點 = 你而家。</div>';
+    h += '<div class="hint">改完之後打 3–5 首，再返嚟入新數，數值就會慢慢收窄。</div>';
+    h += '</div>';
+
+    resultEl.innerHTML = h;
+  }
+
+  // ================= 自我檢查 =================
+  function runSelfTest(){
+    var el = document.getElementById('selftest');
+    try{
+      var mu = 12, sg = 35, N = 600;
+      var mCP = ncdf((CP_EDGE - mu)/sg) - ncdf((-CP_EDGE - mu)/sg);
+      var mP = bandMass(CP_EDGE, P_EDGE, mu, sg);
+      var T = { cp: Math.round(N*mCP/(mCP+mP)), p: 0 };
+      T.p = N - T.cp;
+
+      var mm = flMasses(mu, sg, CP_EDGE, GD_EDGE);
+      var t = mm.pL + mm.pF;
+      var NF = 900;
+      var Lc = Math.round(NF*mm.pL/t);
+      var Fc = NF - Lc;
+
+      var fit = fitDetail(T, Fc, Lc, CP_EDGE, GD_EDGE);
+      if (!fit){ el.className = 'selftest bad'; el.textContent = '✗ 擬合器冇回傳結果'; return; }
+      var okMu = Math.abs(fit.mu - mu) < 2.5;
+      var okSg = Math.abs(fit.sigma - sg) < 5;
+      var ok = okMu && okSg;
+      el.className = 'selftest ' + (ok ? 'ok' : 'bad');
+      el.innerHTML = (ok ? '✓ 通過' : '✗ 唔對')
+        + ' — 合成數據 μ = +12.0 ms、σ = 35.0 ms（CP ' + T.cp + ' / P ' + T.p + '、FAST ' + Fc + ' / LATE ' + Lc + '）'
+        + ' → 擬合結果 μ = ' + fmtNum(fit.mu, 1) + ' ms、σ = ' + fit.sigma.toFixed(1) + ' ms';
+    }catch(e){
+      el.className = 'selftest bad';
+      el.textContent = '✗ 出錯：' + e.message;
+    }
+  }
+
+  // ================= 儲存 =================
+  var KEY = 'maimai_offset_v04';
+  function save(){
+    try{
+      localStorage.setItem(KEY, JSON.stringify({
+        mode: state.mode, target: state.target, shown: state.shown,
+        sigma: state.sigma, a: state.a, b: state.b, plays: state.plays
+      }));
+    }catch(e){}
+  }
+  function load(){
+    try{
+      var raw = localStorage.getItem(KEY);
+      if (!raw) return false;
+      var d = JSON.parse(raw);
+      if (d.mode) state.mode = d.mode;
+      if (d.target) state.target = d.target;
+      if (d.shown !== undefined) state.shown = d.shown;
+      if (d.sigma) state.sigma = d.sigma;
+      state.a = d.a || 0;
+      state.b = d.b || 0;
+      if (d.plays && d.plays.length){
+        state.plays = d.plays.map(function(p){
+          var q = blankPlay();
+          for (var k in q) if (p[k] !== undefined && p[k] !== null) q[k] = p[k];
+          return q;
+        });
+      }
+      return true;
+    }catch(e){ return false; }
+  }
+
+  function syncControls(){
+    document.getElementById('offsetA').value = state.a;
+    document.getElementById('offsetB').value = state.b;
+    var t = document.querySelector('input[name="target"][value="' + state.target + '"]');
+    if (t) t.checked = true;
+    var sh = document.querySelector('input[name="shown"][value="' + state.shown + '"]');
+    if (sh) sh.checked = true;
+    var s = document.querySelector('input[name="sigma"][value="' + state.sigma + '"]');
+    if (s) s.checked = true;
+    var m = document.querySelector('input[name="mode"][value="' + state.mode + '"]');
+    if (m) m.checked = true;
+  }
+
+  // ================= tomomai 自動匯入 =================
+  var TOMO = 'https://www.tomomai.lol/api/trpc/';
+  var importMsgEl = document.getElementById('tomomaiMsg');
+
+  function setImportMsg(t, isErr){
+    if (!importMsgEl) return;
+    importMsgEl.textContent = t;
+    importMsgEl.style.color = isErr ? '#ff7a9c' : '';
+    importMsgEl.style.fontWeight = isErr ? '600' : '';
+    if (isErr){
+      var det = importMsgEl.parentElement && importMsgEl.parentElement.querySelector('details');
+      if (det) det.open = true;
+      if (importMsgEl.scrollIntoView){
+        try { importMsgEl.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {}
+      }
+    }
+  }
+
+  function trpc(proc, payload){
+    var url = TOMO + proc + '?input=' + encodeURIComponent(JSON.stringify({ json: payload }));
+    return fetch(url, { headers: { accept: 'application/json' } }).then(function(res){
+      return res.text().then(function(txt){
+        var j = null;
+        try { j = JSON.parse(txt); } catch (e) {}
+        if (!j) throw new Error('HTTP ' + res.status);
+        if (j.error) throw new Error((j.error.json && j.error.json.message) || ('HTTP ' + res.status));
+        if (!j.result) throw new Error('HTTP ' + res.status);
+        return j.result.data.json;
+      });
+    });
+  }
+
+  function parseTomomaiUrl(s){
+    s = (s || '').trim();
+    if (!s) return null;
+    var name = null, region = null;
+    if (s.indexOf('/') < 0){
+      name = s;
+    } else {
+      var u = null;
+      try { u = new URL(s); } catch (e) {}
+      var path = u ? u.pathname : s;
+      var parts = path.split('/').filter(Boolean);
+      var i = parts.indexOf('profile');
+      if (i >= 0 && parts[i + 1]){ name = parts[i + 1]; region = parts[i + 2] || null; }
+    }
+    if (!name) return null;
+    if (region && (region.length > 6 || ['en','zh','ja','ko','intl2'].indexOf(region) >= 0)) region = null;
+    try { name = decodeURIComponent(name); } catch (e) {}
+    return { name: name, region: region };
+  }
+
+  function oneTotal(p, kind){
+    return (p[kind + 'CPerfect'] || 0) + (p[kind + 'Perfect'] || 0) + (p[kind + 'Great'] || 0)
+         + (p[kind + 'Good'] || 0) + (p[kind + 'Miss'] || 0);
+  }
+
+  function playsFromRecents(list, n){
+    var out = [], kinds = ['tap', 'hold', 'slide', 'touch', 'break'], i, k;
+    for (i = 0; i < list.length && out.length < n; i++){
+      var p = list[i];
+      var f = p.fastCount || 0, l = p.lateCount || 0;
+      if (f + l === 0) continue;
+      if (p.achievement === 0) continue;
+      var cp = 0, pf = 0;
+      for (k = 0; k < kinds.length; k++){
+        cp += (p[kinds[k] + 'CPerfect'] || 0);
+        pf += (p[kinds[k] + 'Perfect'] || 0);
+      }
+      out.push({
+        cp: String(cp), p: String(pf),
+        sl: String(oneTotal(p, 'slide')), tc: String(oneTotal(p, 'touch')),
+        f: String(f), l: String(l),
+        song: p.songName || '', lvl: p.levelPrecise || (p.level != null ? p.level : '')
+      });
+    }
+    return out;
+  }
+
+  function applyImport(rows){
+    if (!rows.length){ setImportMsg('搵唔到有 FAST/LATE 嘅場次。'); return; }
+    state.mode = 'detail';
+    state.plays = rows;
+    syncControls(); renderModeNote(); renderPlays(); save(); recalc();
+    var F = 0, L = 0;
+    rows.forEach(function(r){ F += +r.f; L += +r.l; });
+    var head = rows.slice(0, 3).map(function(r){ return r.song || '?'; }).join('、');
+    setImportMsg('✓ 已匯入 ' + rows.length + ' 場（FAST ' + F + ' / LATE ' + L + '）。' + head
+      + (rows.length > 3 ? ' 等' : '')
+      + ((F + L) < 200 ? '　⚠ 判定少過 200 個，結果會好浮。' : ''));
+  }
+
+  function importLimit(){
+    return Math.max(1, Math.min(50, parseInt(document.getElementById('tomomaiN').value, 10) || 10));
+  }
+
+  // ---- 讀同一個網址嘅 plays.json（由 GitHub Actions 定時產生）----
+  var playsJsonCache = null;
+  function checkPlaysJson(){
+    var btn = document.getElementById('tomomaiUseJson');
+    if (!btn || !window.fetch) return;
+    fetch('plays.json', { cache: 'no-store' }).then(function(r){
+      return r.ok ? r.json() : null;
+    }).then(function(j){
+      if (!j || !j.plays || !j.plays.length) return;
+      playsJsonCache = j;
+      var when = '';
+      if (j.updated){
+        var d = new Date(j.updated);
+        if (!isNaN(d.getTime())){
+          var p2 = function(x){ return (x < 10 ? '0' : '') + x; };
+          when = '（' + (d.getMonth() + 1) + '/' + d.getDate() + ' '
+               + p2(d.getHours()) + ':' + p2(d.getMinutes()) + '）';
+        }
+      }
+      btn.textContent = '用 GitHub 上最新數據：' + j.plays.length + ' 場' + when;
+      btn.style.display = '';
+    }).catch(function(){});
+  }
+
+  function doImport(){
+    var who = parseTomomaiUrl(document.getElementById('tomomaiUrl').value);
+    if (!who){ setImportMsg('網址睇唔明 —— 應該似 https://www.tomomai.lol/profile/你嘅名', true); return; }
+    var n = importLimit();
+    setImportMsg('讀取中…');
+    var region = who.region;
+    trpc('user.getPublicProfile', { username: who.name }).then(function(prof){
+      region = region || prof.profileMainRegion || 'intl';
+      return trpc('user.getPublicSnapshotData', { username: prof.name, region: region })
+        .catch(function(){ return trpc('user.getPublicSnapshotData', { userId: prof.id, region: region }); });
+    }).then(function(snap){
+      var sid = (snap && snap.snapshot && snap.snapshot.id) || null;
+      if (!sid) throw new Error('搵唔到最新 snapshot');
+      var raw = document.getElementById('tomomaiRaw');
+      if (raw) raw.textContent = TOMO + 'user.getPublicRecentSongs?input='
+        + encodeURIComponent(JSON.stringify({ json: { snapshotId: sid, region: region } }));
+      return trpc('user.getPublicRecentSongs', { snapshotId: sid, region: region });
+    }).then(function(rec){
+      applyImport(playsFromRecents(rec.recentPlays || rec.plays || [], n));
+    }).catch(function(e){
+      setImportMsg('讀唔到：' + (e && e.message ? e.message : e)
+        + '。瀏覽器擋咗跨網域請求 —— 請用下面「方法一」或手動入。', true);
+    });
+  }
+
+  function normalizePlays(list, n){
+    if (!list || !list.length) return [];
+    var p0 = list[0] || {};
+    var compact = (p0.cp !== undefined) || (p0.CP !== undefined)
+               || (p0.fastCount === undefined && (p0.f !== undefined || p0.l !== undefined));
+    if (!compact) return playsFromRecents(list, n);
+
+    var out = [];
+    for (var i = 0; i < list.length && out.length < n; i++){
+      var p = list[i] || {};
+      var f = numOf(p.f !== undefined ? p.f : p.fast);
+      var l = numOf(p.l !== undefined ? p.l : p.late);
+      if (f + l === 0) continue;
+      out.push({
+        cp: String(numOf(p.cp !== undefined ? p.cp : p.CP)),
+        p:  String(numOf(p.p  !== undefined ? p.p  : p.P)),
+        sl: String(numOf(p.sl !== undefined ? p.sl : p.slide)),
+        tc: String(numOf(p.tc !== undefined ? p.tc : p.touch)),
+        f: String(f), l: String(l),
+        song: p.song || p.songName || '', lvl: p.lvl || ''
+      });
+    }
+    return out;
+  }
+
+  function parseText(txt){
+    txt = (txt || '').trim();
+    if (!txt){ setImportMsg('個格係空嘅。'); return; }
+    var j = null;
+    try { j = JSON.parse(txt); } catch (e) { setImportMsg('唔係有效 JSON。'); return; }
+    if (j && j.result && j.result.data && j.result.data.json) j = j.result.data.json;
+    if (j && j.json && (j.json.recentPlays || j.json.plays)) j = j.json;
+    var list = (j && (j.recentPlays || j.plays)) || (Array.isArray(j) ? j : null);
+    if (!list){ setImportMsg('JSON 裡面搵唔到 recentPlays 或 plays。'); return; }
+    applyImport(normalizePlays(list, importLimit()));
+  }
+
+  // ================= 事件 =================
+  document.getElementById('tomomaiPick').addEventListener('click', function(){
+    document.getElementById('tomomaiFile').click();
+  });
+  document.getElementById('tomomaiFile').addEventListener('change', function(){
+    var f = this.files && this.files[0];
+    if (!f) return;
+    var rd = new FileReader();
+    rd.onload = function(){ parseText(String(rd.result)); };
+    rd.onerror = function(){ setImportMsg('讀檔案失敗。'); };
+    rd.readAsText(f);
+    this.value = '';
+  });
+  document.getElementById('tomomaiUseJson').addEventListener('click', function(){
+    if (playsJsonCache) applyImport(normalizePlays(playsJsonCache.plays, importLimit()));
+  });
+  document.getElementById('tomomaiParse').addEventListener('click', function(){
+    parseText(document.getElementById('tomomaiJson').value);
+  });
+  document.getElementById('tomomaiGo').addEventListener('click', function(){
+    try { doImport(); } catch (e) { setImportMsg('出錯：' + (e && e.message ? e.message : e), true); }
+  });
+  document.getElementById('offsetA').addEventListener('input', function(){
+    state.a = parseFloat(this.value) || 0; save(); recalc();
+  });
+  document.getElementById('offsetB').addEventListener('input', function(){
+    state.b = parseFloat(this.value) || 0; save(); recalc();
+  });
+  document.querySelectorAll('input[name="target"]').forEach(function(el){
+    el.addEventListener('change', function(){ state.target = this.value; save(); recalc(); });
+  });
+  document.querySelectorAll('input[name="shown"]').forEach(function(el){
+    el.addEventListener('change', function(){ state.shown = parseFloat(this.value); save(); recalc(); });
+  });
+  document.querySelectorAll('input[name="sigma"]').forEach(function(el){
+    el.addEventListener('change', function(){ state.sigma = parseFloat(this.value); save(); recalc(); });
+  });
+  document.querySelectorAll('input[name="mode"]').forEach(function(el){
+    el.addEventListener('change', function(){
+      state.mode = this.value;
+      renderModeNote(); renderPlays(); save(); recalc();
+    });
+  });
+  document.getElementById('addPlay').addEventListener('click', function(){
+    state.plays.push(blankPlay()); renderPlays(); save(); recalc();
+  });
+  document.getElementById('clearPlays').addEventListener('click', function(){
+    state.plays = [blankPlay()]; renderPlays(); save(); recalc();
+  });
+
+  // ================= 初始化 =================
+  if (!load() || !state.plays.length){
+    state.plays = [blankPlay(), blankPlay(), blankPlay(), blankPlay(), blankPlay()];
+  }
+  syncControls();
+  renderModeNote();
+  renderPlays();
+  recalc();
+  checkPlaysJson();
+  runSelfTest();
+})();
+</script>
+</body>
+</html>
