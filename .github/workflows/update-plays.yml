@@ -18,7 +18,7 @@ jobs:
         env:
           TOMOMAI_USER: steven      # ← 改做你個 tomomai username
           TOMOMAI_REGION: intl      # ← intl 或者 asia
-          TOMOMAI_LIMIT: '10'       # ← 要幾多場
+          TOMOMAI_LIMIT: '20'       # ← 要幾多場
         run: node tools/fetch-plays.mjs
 
       - name: 有變先 commit
